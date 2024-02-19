@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App.tsx";
+import Home from "./pages/Home.tsx";
+import Map from "./pages/Map.tsx";
 import "./index.css";
 
 import store from "./stores/index";
@@ -10,18 +11,16 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 
 const theme = createTheme({
-  // direction: 'rtl',
-  // other theme properties
 });
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <App />,
+    element: <Home />,
   },
   {
-    path: "/test",
-    element: <App />,
+    path: "/map",
+    element: <Map />,
   },
 ]);
 
