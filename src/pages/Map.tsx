@@ -66,13 +66,8 @@ function Map() {
   ];
   const center = [32.348141, -90.882462];
   const [drawnPolygonCoords, setDrawnPolygonCoords] = useState([]);
-  const [tractOption, setTractOption] = useState([
-    "970700",
-    "975902",
-    "001600",
-    "966100",
-    "001000",
-  ]);
+  const [geoJson, setGeoJson] = useState({});
+  const [tractOption, setTractOption] = useState([]);
   const [state, setState] = useState([]);
   const [tract, setTract] = useState([]);
 
@@ -84,13 +79,59 @@ function Map() {
     setDrawnPolygonCoords(newCoords);
   };
 
-  const handleSearch = (e: any) => {
-    console.log(e.target.value);
-    axios
-      .get(`http://localhost:1323/tract?tractce=${e.target.value}`)
-      .then((res) => {
-        setTractOption(res.data);
-      });
+  const handleSearchTract = (e: any) => {
+    const conbinedState = state.join(",").replace(" ", "%20");
+    console.log(conbinedState);
+    if (conbinedState == "") {
+      axios
+        .get(`http://localhost:1323/tract?tract=${e.target.value}`)
+        .then((res) => {
+          setTractOption(res.data);
+        })
+        .catch((error) => {
+          // Handle error
+          if (error.response) {
+            // The request was made and the server responded with a status code that falls out of the range of 2xx
+            console.log(error.response.data);
+            console.log(error.response.status);
+            console.log(error.response.headers);
+          } else if (error.request) {
+            // The request was made but no response was received
+            console.log(error.request);
+          } else {
+            // Something happened in setting up the request that triggered an Error
+            console.log("Error", error.message);
+          }
+          console.log(error.config);
+        });
+    } else {
+      console.log(
+        `http://localhost:1323/tract?tract=${e.target.value}&state=${conbinedState}`,
+      );
+      axios
+        .get(
+          `http://localhost:1323/tract?tract=${e.target.value}&state=${conbinedState}`,
+        )
+        .then((res) => {
+          setTractOption(res.data);
+        })
+        .catch((error) => {
+          // Handle error
+          if (error.response) {
+            // The request was made and the server responded with a status code that falls out of the range of 2xx
+            console.log(error.response.data);
+            console.log(error.response.status);
+            console.log(error.response.headers);
+          } else if (error.request) {
+            // The request was made but no response was received
+            console.log(error.request);
+          } else {
+            // Something happened in setting up the request that triggered an Error
+            console.log("Error", error.message);
+          }
+          console.log(error.config);
+        });
+    }
   };
 
   const handleOnChangeState = (_: any, value: any) => {
@@ -98,7 +139,7 @@ function Map() {
   };
   const handleOnChangeTract = (_: any, value: any) => {
     setTract(value);
-  }
+  };
 
   const handleGetPolygon = () => {
     axios
@@ -107,7 +148,23 @@ function Map() {
         tract: tract,
       })
       .then((res) => {
-        console.log(res.data);
+        setGeoJson(res.data);
+      })
+      .catch((error) => {
+        // Handle error
+        if (error.response) {
+          // The request was made and the server responded with a status code that falls out of the range of 2xx
+          console.log(error.response.data);
+          console.log(error.response.status);
+          console.log(error.response.headers);
+        } else if (error.request) {
+          // The request was made but no response was received
+          console.log(error.request);
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          console.log("Error", error.message);
+        }
+        console.log(error.config);
       });
   };
   return (
@@ -116,7 +173,7 @@ function Map() {
       <div className="float-right p-2 z-30">
         <Paper
           component="form"
-          onSubmit={handleSearch}
+          onSubmit={handleSearchTract}
           sx={{
             display: "flex",
             alignItems: "center",
@@ -142,23 +199,32 @@ function Map() {
               multiple
               options={tractOption}
               onChange={handleOnChangeTract}
-              onKeyUp={debounce((e) => handleSearch(e), 500)}
+              onSelect={handleSearchTract}
+              onKeyUp={debounce((e) => handleSearchTract(e), 500)}
               renderInput={(params) => (
                 <TextField
                   {...params}
                   label="Tract"
                   variant="outlined"
                   style={{ width: 300 }}
-                // InputProps={{
-                //   ...params.InputProps,
-                //   endAdornment: <SearchIcon />,
-                // }}
                 />
               )}
               className="z-50"
             />
-            <Button variant="contained" onClick={handleGetPolygon} className="z-50">
+            <Button
+              variant="contained"
+              onClick={handleGetPolygon}
+              className="z-50"
+            >
               Search
+            </Button>
+
+            <Button
+              variant="contained"
+              onClick={() => console.log(geoJson)}
+              className="z-50"
+            >
+              Get Polygon
             </Button>
           </Stack>
         </Paper>
