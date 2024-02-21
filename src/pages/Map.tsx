@@ -1,16 +1,15 @@
 import NavBar from "../components/NavBar.tsx";
 import { useState, useMemo } from "react";
-import { Paper, Stack, Button } from "@mui/material";
+
+import { Paper, Stack, Button, Autocomplete, TextField } from "@mui/material";
+import { debounce } from "@mui/material/utils";
+
 import { MapContainer, TileLayer, FeatureGroup } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
-
-import SearchIcon from "@mui/icons-material/Search";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
-import Autocomplete from "@mui/material/Autocomplete";
-import TextField from "@mui/material/TextField";
+
 import axios from "axios";
-import { debounce } from "@mui/material/utils";
 
 function Map() {
   const stateOption = [
