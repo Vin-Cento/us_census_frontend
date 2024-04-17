@@ -1,137 +1,50 @@
 import NavBar from "../components/NavBar.tsx";
-import { useState, useMemo } from "react";
+import { useState, useRef } from "react";
 
 import { Paper, Stack, Button, Autocomplete, TextField } from "@mui/material";
 import { debounce } from "@mui/material/utils";
 
-import { MapContainer, TileLayer, FeatureGroup } from "react-leaflet";
+import { MapContainer, TileLayer, FeatureGroup, GeoJSON } from "react-leaflet";
 import { EditControl } from "react-leaflet-draw";
 import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
+import "leaflet-draw";
+// @ts-expect-error POSSIBLE error
+window.type = ""; // Doesn't matter what value to put here, just initialize the thing
+
+import { stateOption } from "../contexts/selection.ts";
 
 import axios from "axios";
+import { fetchTract } from "../api/tract.ts";
 
 function Map() {
-  const stateOption = [
-    "Alabama",
-    "Alaska",
-    "Arizona",
-    "Arkansas",
-    "California",
-    "Colorado",
-    "Connecticut",
-    "Delaware",
-    "Florida",
-    "Georgia",
-    "Hawaii",
-    "Idaho",
-    "Illinois",
-    "Indiana",
-    "Iowa",
-    "Kansas",
-    "Kentucky",
-    "Louisiana",
-    "Maine",
-    "Maryland",
-    "Massachusetts",
-    "Michigan",
-    "Minnesota",
-    "Mississippi",
-    "Missouri",
-    "Montana",
-    "Nebraska",
-    "Nevada",
-    "New Hampshire",
-    "New Jersey",
-    "New Mexico",
-    "New York",
-    "North Carolina",
-    "North Dakota",
-    "Ohio",
-    "Oklahoma",
-    "Oregon",
-    "Pennsylvania",
-    "Rhode Island",
-    "South Carolina",
-    "South Dakota",
-    "Tennessee",
-    "Texas",
-    "Utah",
-    "Vermont",
-    "Virginia",
-    "Washington",
-    "West Virginia",
-    "Wisconsin",
-    "Wyoming",
-  ];
   const center = [32.348141, -90.882462];
-  const [drawnPolygonCoords, setDrawnPolygonCoords] = useState([]);
-  const [geoJson, setGeoJson] = useState({});
+
+  const [featureCollection, setFeatureCollection] = useState(null);
+  const georef = useRef(null);
+  const toolref = useRef(null);
+
   const [tractOption, setTractOption] = useState([]);
   const [state, setState] = useState([]);
   const [tract, setTract] = useState([]);
 
-  const handleDrawnPolygon = (e: any) => {
-    const newCoords = e.layer._latlngs[0].map((coord: any) => [
-      coord.lat,
-      coord.lng,
-    ]);
-    setDrawnPolygonCoords(newCoords);
+  const handleDeletePolygon = () => {
+    console.log(georef.current);
+    if (toolref.current) {
+      // @ts-expect-error POSSIBLE error
+      toolref.current.eachLayer((layer: any) => {
+        console.log(layer);
+        console.log(layer._leaflet_id);
+        // toolref.current.removeLayer(layer._leaflet_id)
+      });
+    }
   };
 
   const handleSearchTract = (e: any) => {
-    const conbinedState = state.join(",").replace(" ", "%20");
-    console.log(conbinedState);
-    if (conbinedState == "") {
-      axios
-        .get(`http://localhost:1323/tract?tract=${e.target.value}`)
-        .then((res) => {
-          setTractOption(res.data);
-        })
-        .catch((error) => {
-          // Handle error
-          if (error.response) {
-            // The request was made and the server responded with a status code that falls out of the range of 2xx
-            console.log(error.response.data);
-            console.log(error.response.status);
-            console.log(error.response.headers);
-          } else if (error.request) {
-            // The request was made but no response was received
-            console.log(error.request);
-          } else {
-            // Something happened in setting up the request that triggered an Error
-            console.log("Error", error.message);
-          }
-          console.log(error.config);
-        });
-    } else {
-      console.log(
-        `http://localhost:1323/tract?tract=${e.target.value}&state=${conbinedState}`,
-      );
-      axios
-        .get(
-          `http://localhost:1323/tract?tract=${e.target.value}&state=${conbinedState}`,
-        )
-        .then((res) => {
-          setTractOption(res.data);
-        })
-        .catch((error) => {
-          // Handle error
-          if (error.response) {
-            // The request was made and the server responded with a status code that falls out of the range of 2xx
-            console.log(error.response.data);
-            console.log(error.response.status);
-            console.log(error.response.headers);
-          } else if (error.request) {
-            // The request was made but no response was received
-            console.log(error.request);
-          } else {
-            // Something happened in setting up the request that triggered an Error
-            console.log("Error", error.message);
-          }
-          console.log(error.config);
-        });
-    }
+    const combinedState = state.join(",").replace(" ", "%20");
+    fetchTract(e.target.value, combinedState).then((data: any) => {
+      data ? setTractOption(data) : () => {};
+    });
   };
 
   const handleOnChangeState = (_: any, value: any) => {
@@ -148,7 +61,7 @@ function Map() {
         tract: tract,
       })
       .then((res) => {
-        setGeoJson(res.data);
+        setFeatureCollection(res.data);
       })
       .catch((error) => {
         // Handle error
@@ -167,6 +80,7 @@ function Map() {
         console.log(error.config);
       });
   };
+
   return (
     <>
       <NavBar />
@@ -199,8 +113,7 @@ function Map() {
               multiple
               options={tractOption}
               onChange={handleOnChangeTract}
-              onSelect={handleSearchTract}
-              onKeyUp={debounce((e) => handleSearchTract(e), 500)}
+              onKeyUp={debounce((e) => handleSearchTract(e), 1000)}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -221,35 +134,54 @@ function Map() {
 
             <Button
               variant="contained"
-              onClick={() => console.log(geoJson)}
               className="z-50"
+              onClick={() => {
+                console.log(JSON.stringify(featureCollection));
+              }}
             >
               Get Polygon
+            </Button>
+
+            <Button
+              variant="contained"
+              className="z-50"
+              onClick={handleDeletePolygon}
+            >
+              Remove Drawn Polygon
             </Button>
           </Stack>
         </Paper>
       </div>
       <MapContainer
+        // @ts-expect-error POSSIBLE error
         center={center}
-        zoom={13}
+        zoom={8}
         style={{ width: "100%", height: "94vh" }}
         className="absolute float z-0"
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        <FeatureGroup>
+        <FeatureGroup ref={toolref}>
           <EditControl
             position="topleft"
-            onCreated={handleDrawnPolygon}
             draw={{
               circlemarker: false,
-              rectangle: false,
+              rectangle: true,
               circle: false,
               marker: false,
               polyline: false,
             }}
+            edit={{
+              edit: false,
+            }}
           />
         </FeatureGroup>
+
+        <GeoJSON
+          key={JSON.stringify(featureCollection)}
+          data={featureCollection}
+          ref={georef}
+        />
       </MapContainer>
     </>
   );
