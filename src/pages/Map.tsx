@@ -14,8 +14,7 @@ window.type = ""; // Doesn't matter what value to put here, just initialize the 
 
 import { stateOption } from "../contexts/selection.ts";
 
-import axios from "axios";
-import { fetchTract } from "../api/tract.ts";
+import { fetchTract, fetchpostTract } from "../api/tract.ts";
 
 function Map() {
   const center = [32.348141, -90.882462];
@@ -43,7 +42,7 @@ function Map() {
   const handleSearchTract = (e: any) => {
     const combinedState = state.join(",").replace(" ", "%20");
     fetchTract(e.target.value, combinedState).then((data: any) => {
-      data ? setTractOption(data) : () => {};
+      data ? setTractOption(data) : () => { };
     });
   };
 
@@ -55,30 +54,10 @@ function Map() {
   };
 
   const handleGetPolygon = () => {
-    axios
-      .post("http://localhost:1323/tract", {
-        state: state,
-        tract: tract,
-      })
-      .then((res) => {
-        setFeatureCollection(res.data);
-      })
-      .catch((error) => {
-        // Handle error
-        if (error.response) {
-          // The request was made and the server responded with a status code that falls out of the range of 2xx
-          console.log(error.response.data);
-          console.log(error.response.status);
-          console.log(error.response.headers);
-        } else if (error.request) {
-          // The request was made but no response was received
-          console.log(error.request);
-        } else {
-          // Something happened in setting up the request that triggered an Error
-          console.log("Error", error.message);
-        }
-        console.log(error.config);
-      });
+    // @ts-expect-error POSSIBLE error
+    fetchpostTract(state, tract).then((data: any) => {
+      data ? setFeatureCollection(data) : () => { };
+    });
   };
 
   return (
@@ -130,16 +109,6 @@ function Map() {
               className="z-50"
             >
               Search
-            </Button>
-
-            <Button
-              variant="contained"
-              className="z-50"
-              onClick={() => {
-                console.log(JSON.stringify(featureCollection));
-              }}
-            >
-              Get Polygon
             </Button>
 
             <Button
